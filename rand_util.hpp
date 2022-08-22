@@ -1,41 +1,70 @@
 #include <random>
- 
+#include <limits>
+#include <tuple>
+#include <iostream>
+#include <typeinfo>
 
 namespace rand_util 
 {
-extern std::default_random_engine rand_util_generator;
 
-inline void seed_rand(std::seed_seq::result_type s0, std::seed_seq::result_type s1 = 0)
+float       promote(float);
+double      promote(double);
+long double promote(long double);
+template<typename T> double promote(T x);
+
+extern std::tuple< std::mt19937       ,
+		   std::minstd_rand0  ,
+		   std::minstd_rand   ,
+		   std::mt19937_64    ,
+		   std::ranlux24_base ,
+		   std::ranlux48_base ,
+		   std::ranlux24      ,
+		   std::ranlux48      ,
+		   std::knuth_b       > rand_generators;      
+
+template<typename GEN = std::mt19937> void rand_seed(std::seed_seq::result_type s0, std::seed_seq::result_type s1 = 0)
 {
 	std::seed_seq seq{ s0, s1 };
-	rand_util_generator.seed(seq);
+	std::get<GEN>(rand_generators).seed(seq);
 }
 
-inline float       promote(float value){return value;}
-inline double      promote(double value){return value;}
-inline long double promote(long double value){return value;}
 
-template<typename T> 
-inline double promote(T value){return (double)value;}
-
-template<typename T> inline T rand_int(T min_, T max_)
-{	
-	std::uniform_int_distribution<T> distribution(min_, max_);
-	return distribution(rand_util_generator);
+template<int N>
+void rand_seed_recursive(std::seed_seq::result_type s0, std::seed_seq::result_type s1)
+{		
+#ifdef __cpp_if_constexpr
+	if constexpr(N < std::tuple_size<decltype(rand_generators)>::value )
+	{	
+		std::seed_seq seq{ s0, s1 };	
+		std::get<N>(rand_generators).seed(seq);		
+		rand_seed_recursive<N + 1>(s0, s1);	
+	}
+#else
+	cout << "rand_seed_recursive not implemented in C++ " << __cplusplus << ".\n";
+#endif
 }
 
-template<typename T_> inline decltype(promote(T_())) rand_real(T_ min_, T_ max_)
+
+void rand_seed_all(std::seed_seq::result_type s0, std::seed_seq::result_type s1 = 0)
 {	
-	using T = decltype(promote(T_()));
-	std::uniform_real_distribution<T> distribution((T)(min_), (T)(max_));
-	return distribution(rand_util_generator);	
+	
+	rand_seed_recursive<0>(s0, s1);
 }
 
-template<typename T_> inline decltype(promote(T_())) rand_normal(T_ mean, T_ stddev)
+
+template<typename GEN = std::mt19937, typename I> I rand_int   (I a, I b)
 {	
-	using T = decltype(promote(T_()));
-	std::normal_distribution<T> distribution((T)(mean), (T)(stddev));
-	return distribution(rand_util_generator);	
-} 
+	return std::uniform_int_distribution<I>(a, b)(std::get<GEN>(rand_generators));
+}
+
+template<typename GEN = std::mt19937, typename R> decltype(promote(R{})) rand_real  (R a, R b)
+{
+	return std::uniform_real_distribution<decltype(promote(R{}))>(a, b)(std::get<GEN>(rand_generators));
+}
+
+template<typename GEN = std::mt19937, typename R> decltype(promote(R{})) rand_normal(R a, R b)
+{
+	return std::normal_distribution<decltype(promote(R{}))>(a, b)(std::get<GEN>(rand_generators));
+}
 
 } 
