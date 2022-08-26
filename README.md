@@ -1,4 +1,4 @@
-# rand_util.hpp: a simplified and abbreviated interface to std::random. 
+# rand_util.hpp: an abbreviated interface to std::random. 
 
 ## rand_int(lo, hi)
 ```
