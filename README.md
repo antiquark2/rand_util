@@ -1,6 +1,6 @@
 # rand_util.hpp: a simplified and abbreviated interface to std::random. 
 
-## rand_int(lo, hi)
+## `rand_int(lo, hi)`
 ```
 template<class Generator = std::mt19937, class IntType>
 IntType rand_int(IntType lo, IntType hi);
